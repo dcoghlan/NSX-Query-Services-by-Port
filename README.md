@@ -1,5 +1,8 @@
 # NSX-Query-Services-by-Port
-A small script to query NSX for vSphere to find and display all the services with a particular port configured
+A small python script to query NSX for vSphere to find and display all the services with a particular port configured.
+
+Requires the Requests libraby to be installed. Requests can be downloaded a from the following URL
+http://docs.python-requests.org/en/latest/
 
 You pass the following arguments to the script
 
