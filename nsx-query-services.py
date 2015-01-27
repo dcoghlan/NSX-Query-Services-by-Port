@@ -14,6 +14,10 @@ from xml.dom.minidom import parse, parseString
 _responsefile = 'xml-services.xml'
 
 #
+# Set the datacenter managed object reference for your specific deployment
+_dcmoref = 'datacenter-2'
+
+#
 # If there aren't enough arguments when the script is called, then display a message and exit.
 if len(sys.argv) != 5:
  print (len(sys.argv))
@@ -33,7 +37,7 @@ myheaders = {'Content-Type': 'application/xml'}
 
 #
 # NSX API URL to get the Logical Switches of a particular transport zone
-requests_url = 'https://%s/api/2.0/services/application/scope/datacenter-2' % (_nsxmgr)
+requests_url = 'https://%s/api/2.0/services/application/scope/%s' % (_nsxmgr, _dcmoref)
 
 #
 # Submits the request to the NSX Manager
