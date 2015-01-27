@@ -16,8 +16,7 @@ An example would be as follows
 ```
 python nsx-query-services.py admin defaultpw nsxmgr-l-01a.corp.local 3389
 ```
-You will also need to update the API URL with the DC managed object refence id. My one in my lab is "datacenter-2" so update it to suit your environment.
+You will also need to update the _dcmoref variable with the DC managed object refence id. My one in my lab is "datacenter-2" so update it to suit your environment.
 
 ##Issues
 * If the service has both a static port & a range defined it will not be handled correclty. If someone wants to fix this logic for me, please do so.
-* Within the URL for the API call I have hard coded the vSphere data center managed object reference id. This needs to be pulled out into a variable, but not sure if it needs to be passed through as an argument or not.
