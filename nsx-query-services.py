@@ -95,34 +95,25 @@ for node in nodes:
 
 	# Checks to see if the element actually exists
 	if elements:
-	
 		# If element does exist, iterate through it
 		for element in elements:
-		
 			# Load the element called applicationProtocol
 			protocol = element.getElementsByTagName("applicationProtocol")[0]
-			
 			# Check to see if the element contains a child
 			if protocol.firstChild:
-			
 				# If it contains the applicatioProtocol element then append the data to the list
 				test.append(protocol.firstChild.data);
-				
 			else:
 				# So if there is no element called applicationProtocol, append the string to the list
 				test.append("no protocol")
-
+			#
 			# Load the element called value
 			port = element.getElementsByTagName("value")[0]
-			
 			# Check to see if the element contains a child
 			if port.firstChild:
-			
 				# If it contains the value element then append the data to the list
 				test.append(port.firstChild.data);
-				
 			else:
-			
 				# So if there is no element called value, append the string to the list
 				test.append("no port value")
 	else:
@@ -168,23 +159,9 @@ for node in nodes:
 		for y in portchecklist:
 			# save the port as an integer
 			_int_port = int(y)
-			# runs the regex against the port variable in the list
-			z = _re_range.match(y)
-			if z:
-				# Splits the variable into 2
-				rangechecklist = portcheck.split("-")
-				# set the low integer port number
-				l = int(rangechecklist[0])
-				# set the high integer port number
-				h = int(rangechecklist[1])
-				# performs a check to see if the port exists between the low and high port numbers, and if it does
-				# will print the data from the list
-				if (l <= int(x) and h >= int(x)):
-					print("{0:17} {1:30} {2:16} {3:16}".format(test[0], test[1], test[2], test[3]))
-			else:
-				# If the integer variable is the same as the port number passed through as an argument, then print the whole line
-				if _int_port == int(x):
-					print("{0:17} {1:30} {2:16} {3:16}".format(test[0], test[1], test[2], test[3]))
+			# If the integer variable is the same as the port number passed through as an argument, then print the whole line
+			if _int_port == int(x):
+				print("{0:17} {1:30} {2:16} {3:16}".format(test[0], test[1], test[2], test[3]))
 
 	# Checks to see if the port is an exact match for applications with only a single port defined
 	if x == portcheck:
