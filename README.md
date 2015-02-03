@@ -12,11 +12,22 @@ You pass the following arguments to the script
 * NSX Manager password
 * NSX Manager FQDN or IP address
 * Port number you want to find
-An example would be as follows
+
+##Example
+Run the following command to find all services configured with port 3389
 ```
 python nsx-query-services.py admin defaultpw nsxmgr-l-01a.corp.local 3389
 ```
-You will also need to update the _dcmoref variable with the DC managed object refence id. My one in my lab is "datacenter-2" so update it to suit your environment.
-
-##Issues
-* If the service has both a static port & a range defined it will not be handled correclty. If someone wants to fix this logic for me, please do so.
+A sample output would be as follows
+```
+ObjectID          Name                           Protocol    Port
+----------------  -----------------------------  ----------  ---------------
+application-32    Win - RPC, DCOM, EPM, DRSUAPI  UDP         1025-65535
+application-36    Win 2003 - RPC, DCOM, EPM, DR  TCP         1025-5000
+application-163   Terminal Services (UDP)        UDP         3389
+application-147   Win - RPC, DCOM, EPM, DRSUAPI  TCP         1025-65535
+application-203   Terminal Services (TCP)        TCP         3389
+application-166   VMware-VDM2.x-Ephemeral        TCP         1024-65535
+application-157   RDP                            TCP         3389
+application-385   aac_6666                       TCP         1234,2345-3456,6666
+```
