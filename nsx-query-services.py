@@ -13,14 +13,16 @@ _responsefile = 'debug-xml-services.xml'
 # Set the managed object reference
 _scope = 'globalroot-0'
 
-# Set debugging mode (0=No, 1=Yes)
-_debug = '1'
+# Uncomment the following line to hardcode the password. This will remove the password prompt.
+#_password = 'VMware1!'
 #
 # ------------------------------------------------------------------------------------------------------------------	
 
 import requests
 import sys
 import re
+import argparse
+import getpass
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from xml.dom.minidom import parse, parseString
@@ -33,60 +35,89 @@ except ImportError:
 	# If you don't have urllib3 we can just hide the warnings 
 	logging.captureWarnings(True)
 
-# If there aren't enough arguments when the script is called, then display a message and exit.
-if len(sys.argv) != 5:
- print (len(sys.argv))
- print ("Usage: python nsx-query-services.py username password nsx_manager_hostname port_number")
- sys.exit()
+parser = argparse.ArgumentParser(description="Queries NSX Manager for a list of services configured with a specific port")
+parser.add_argument("-u", help="OPTIONAL - NSX Manager username (default: %(default)s)", metavar="user", dest="_user", nargs="?", const='admin')
+parser.set_defaults(_user="admin")
+parser.add_argument("-n", help="NSX Manager hostname, FQDN or IP address", metavar="nsxmgr", dest="_nsxmgr", type=str, required=True)
+parser.add_argument("-p", help="TCP/UDP port number", metavar="port", dest="_port", required=True)
+parser.add_argument("-r", help="Include port ranges in the output", dest="_searchRanges", action="store_true")
+parser.add_argument("-d", help="Enable script debugging", dest="_debug", action="store_true")
+args = parser.parse_args()
 
-# Reads command line arguments and saves them to variables
-_user = sys.argv[1]
-_password = sys.argv[2]
-_nsxmgr = sys.argv[3]
-_port = sys.argv[4]
+# Check to see if the password has been hardcoded. If it hasn't prompt for the password
+try: 
+	_password
+except NameError:
+	_password = getpass.getpass(prompt="NSX Manager password:")
+
+# Reads command line flags and saves them to variables
+_user = args._user
+_nsxmgr = args._nsxmgr
+_port = args._port
 
 # Set the application content-type header value
 myheaders = {'Content-Type': 'application/xml'}
 
-# NSX API URL to get the Logical Switches of a particular transport zone
+# NSX API URL to get all services configured in the specified scope
 requests_url = 'https://%s/api/2.0/services/application/scope/%s' % (_nsxmgr, _scope)
 
 # Submits the request to the NSX Manager
 success = requests.get((requests_url), headers=myheaders, auth=(_user, _password), verify=False)
 
-# DEBUGGING - Will parse xml response and write it to file configured in _responsefile variable
-if _debug == '1':
+def f_debugMode():
 	_responsexml = open('%s' % _responsefile, 'w+')
-	_responsexml.write(success.text);
+	_responsexml.write(success.text)
 	_responsexml.close()
+	print()
+	print("Status Code = %s" % success.status_code)
+	print("API response written to %s" % _responsefile)
+
+def f_checkRange(y, _port):
+	_exists = "n"
+	if args._searchRanges:
+		# Splits the variable into 2
+		rangechecklist = y.split("-")
+		# set the low integer port number
+		l = int(rangechecklist[0])
+		# set the high integer port number
+		h = int(rangechecklist[1])
+		# performs a check to see if the port exists between the low and high port numbers, and if it does
+		# will print the data from the list
+		if (l <= int(_port) and h >= int(_port)):
+			_exists = "y"
+	return _exists
+
+def f_checkSingle(_int_port, _port):
+	_exists = "n"
+	if _int_port == _port:	
+		_exists = "y"
+	return _exists
+
+def f_printDataRow():
+	print(_outputDataRow.format(data[0], data[1], data[2], data[3]))
+	
+# If something goes wrong with the xml query, and we dont get a 200 status code returned,
+# enabled debug mode and exit the script.
+if int(success.status_code) != 200:
+	f_debugMode()
+	exit()
+
+# Checks to see if debug mode is enabled
+if args._debug:
+	f_debugMode()
+	
+# Loads XML response into memory
+doc = parseString(success.text)
 
 # Set output formatting
 _outputHeaderRow = "{0:17} {1:30} {2:11} {3:16}"
 _outputDataRow = "{0:17} {1:30.29} {2:11} {3:16}"
 
-# Loads XML response into memory
-doc = parseString(success.text)
-
-# Sets up column headers 
+# Sets up column headers
+print() 
 print(_outputHeaderRow.format("ObjectID", "Name", "Protocol", "Port"))
 print(_outputHeaderRow.format("-"*16, "-"*29, "-"*10, "-"*15))
-
-def f_checkRange(y, _port):
-	# Splits the variable into 2
-	rangechecklist = y.split("-")
-	# set the low integer port number
-	l = int(rangechecklist[0])
-	# set the high integer port number
-	h = int(rangechecklist[1])
-	# performs a check to see if the port exists between the low and high port numbers, and if it does
-	# will print the data from the list
-	if (l <= int(_port) and h >= int(_port)):
-		print(_outputDataRow.format(data[0], data[1], data[2], data[3]))
-
-def f_checkSingle(_int_port, _port):
-	if _int_port == _port:	
-		print(_outputDataRow.format(data[0], data[1], data[2], data[3]))
-
+	
 # Loads xml document into memory using the application element
 nodes = doc.getElementsByTagName('application')
 
@@ -139,7 +170,7 @@ for node in nodes:
 	# sets up regular expression to look for ranges within a variable
 	_re_range = re.compile(".*\,*[0-9]+\-[0-9]+")
 	
-	# runs the regex against the port variable in the list
+	# runs the regex against the port variable in the list to see if a range exists? We will use this further down.
 	m = _re_range.match(portcheck)
 	
 	# Checks to see if multiple ports and/or ranges are specified in the service (separated by comma)
@@ -147,15 +178,26 @@ for node in nodes:
 	# lastly check the single port number
 	if "," in portcheck:
 		portchecklist = portcheck.split(",")
-		for y in portchecklist:
-			n = _re_range.match(y)
+		_existenceCount = 0
+		for z in portchecklist:
+			n = _re_range.match(z)
 			if n:
-				f_checkRange(y,_port)
+				_exists=(f_checkRange(z,_port))
+				if _exists =="y":
+					_existenceCount += 1
 			else:
-				f_checkSingle(int(y), int(_port))
+				_exists=(f_checkSingle(int(z), int(_port)))
+				if _exists =="y":
+					_existenceCount += 1
+		if _existenceCount >= 1:
+			f_printDataRow()
 	elif m:
-		f_checkRange(portcheck,_port)
+		_exists=(f_checkRange(portcheck,_port))
+		if _exists == "y":
+			f_printDataRow()
 	else:
-		f_checkSingle(portcheck, _port)
+		_exists=(f_checkSingle(portcheck, _port))
+		if _exists == "y":
+			f_printDataRow()
 
 exit()
