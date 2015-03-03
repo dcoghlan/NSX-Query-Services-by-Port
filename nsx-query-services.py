@@ -23,6 +23,7 @@ import sys
 import re
 import argparse
 import getpass
+import logging
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from xml.dom.minidom import parse, parseString
